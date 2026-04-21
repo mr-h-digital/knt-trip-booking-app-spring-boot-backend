@@ -327,7 +327,7 @@ Hibernate auto-generates the schema on startup (`spring.jpa.hibernate.ddl-auto=u
 <br/>
 
 [![Website](https://img.shields.io/badge/Website-mrhdigital.co.za-84CC16?style=flat-square)](https://mrhdigital.co.za)
-[![Email](https://img.shields.io/badge/Email-hello%40mrhdigital.co.za-84CC16?style=flat-square)](mailto:hello@mrhdigital.co.za)
+[![Email](https://img.shields.io/badge/Email-info%40mrhdigital.co.za-84CC16?style=flat-square)](mailto:info@mrhdigital.co.za)
 
 <br/>
 
