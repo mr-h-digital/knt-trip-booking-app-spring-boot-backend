@@ -15,6 +15,10 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.UUID;
 
+// TODO: Replace local filesystem storage with S3/Cloudflare R2 before
+// enabling avatar uploads in production. Railway containers are ephemeral —
+// files written to disk are lost on every redeploy.
+
 @Service
 public class UserService {
 
@@ -52,6 +56,15 @@ public class UserService {
     public UserDto uploadAvatar(String email, MultipartFile file) throws IOException {
         if (file.isEmpty()) {
             throw new BadRequestException("Avatar file is empty");
+        }
+
+        // Block uploads on Railway until cloud storage (S3/R2) is configured,
+        // because the Railway filesystem is ephemeral and files will not persist.
+        if (System.getenv("RAILWAY_ENVIRONMENT") != null) {
+            throw new BadRequestException(
+                "Avatar file upload is not yet supported on this server. " +
+                "Please provide an avatar URL via profile update instead."
+            );
         }
 
         Path dir = Paths.get(uploadDir, "avatars").toAbsolutePath();

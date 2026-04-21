@@ -249,8 +249,12 @@ Railway automatically injects `DATABASE_URL` into your service.
 
 | Variable | Description | Required |
 |----------|-------------|----------|
-| `DATABASE_URL` | Auto-injected by Railway PostgreSQL plugin | Auto |
-| `JWT_SECRET` | Random string, 32+ characters | Yes |
+| `PGHOST` | Auto-injected by Railway PostgreSQL plugin | Auto |
+| `PGPORT` | Auto-injected by Railway PostgreSQL plugin | Auto |
+| `PGDATABASE` | Auto-injected by Railway PostgreSQL plugin | Auto |
+| `PGUSER` | Auto-injected by Railway PostgreSQL plugin | Auto |
+| `PGPASSWORD` | Auto-injected by Railway PostgreSQL plugin | Auto |
+| `JWT_SECRET` | Random string, 32+ characters | **Yes** |
 | `JWT_EXPIRATION_MS` | Token lifetime in ms (default: `86400000` = 24h) | Optional |
 | `CORS_ALLOWED_ORIGINS` | Comma-separated allowed origins | Optional |
 | `PORT` | Auto-injected by Railway | Auto |

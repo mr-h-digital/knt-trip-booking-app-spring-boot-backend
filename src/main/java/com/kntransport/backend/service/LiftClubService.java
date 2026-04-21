@@ -12,6 +12,7 @@ import com.kntransport.backend.repository.LiftClubRepository;
 import com.kntransport.backend.repository.LiftClubSubscriptionRepository;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalTime;
 import java.util.UUID;
@@ -62,6 +63,7 @@ public class LiftClubService {
         return LiftClubDto.from(liftClubRepository.save(lc), 0);
     }
 
+    @Transactional
     public void subscribe(String email, String liftClubId) {
         User user = userService.getByEmail(email);
         LiftClub lc = findLiftClub(liftClubId);
