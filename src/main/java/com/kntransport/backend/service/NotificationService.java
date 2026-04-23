@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
+import java.time.Instant;
 
 @Service
 public class NotificationService {
@@ -48,5 +49,30 @@ public class NotificationService {
     public void markAllRead(String email) {
         User user = userService.getByEmail(email);
         notificationRepository.markAllReadByUser(user);
+    }
+
+    /**
+     * Creates and persists a notification for a user, optionally linked to a
+     * specific entity (trip, lift club, or quote) so the Android app can
+     * deep-link to it from the notification detail screen.
+     */
+    @Transactional
+    public void createNotification(
+            User user,
+            Notification.NotifType type,
+            String title,
+            String body,
+            UUID referenceId,
+            Notification.ReferenceType referenceType) {
+
+        Notification n = new Notification();
+        n.setUser(user);
+        n.setType(type);
+        n.setTitle(title);
+        n.setBody(body);
+        n.setTimestamp(Instant.now());
+        n.setReferenceId(referenceId);
+        n.setReferenceType(referenceType);
+        notificationRepository.save(n);
     }
 }

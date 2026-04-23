@@ -2,6 +2,7 @@ package com.kntransport.backend.controller;
 
 import com.kntransport.backend.dto.CreateTripRequest;
 import com.kntransport.backend.dto.PagedResponse;
+import com.kntransport.backend.dto.RateTripRequest;
 import com.kntransport.backend.dto.TripBookingDto;
 import com.kntransport.backend.service.TripService;
 import jakarta.validation.Valid;
@@ -41,5 +42,13 @@ public class TripController {
             @AuthenticationPrincipal UserDetails principal,
             @Valid @RequestBody CreateTripRequest request) {
         return tripService.createTrip(principal.getUsername(), request);
+    }
+
+    @PostMapping("/{id}/rate")
+    public TripBookingDto rateTrip(
+            @AuthenticationPrincipal UserDetails principal,
+            @PathVariable String id,
+            @Valid @RequestBody RateTripRequest request) {
+        return tripService.rateTrip(principal.getUsername(), id, request);
     }
 }

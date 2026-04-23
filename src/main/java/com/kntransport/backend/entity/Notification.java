@@ -32,7 +32,17 @@ public class Notification {
     @Column(nullable = false)
     private boolean read = false;
 
+    /** Optional reference to the entity this notification is about. */
+    @Column(name = "reference_id")
+    private UUID referenceId;
+
+    /** The type of the referenced entity: TRIP, LIFT_CLUB, or QUOTE. */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "reference_type")
+    private ReferenceType referenceType;
+
     public enum NotifType { QUOTE_RECEIVED, TRIP_CONFIRMED, LIFT_CLUB_UPDATE, GENERAL }
+    public enum ReferenceType { TRIP, LIFT_CLUB, QUOTE }
 
     // ── Getters / Setters ─────────────────────────────────────────────────────
 
@@ -56,4 +66,10 @@ public class Notification {
 
     public boolean isRead() { return read; }
     public void setRead(boolean read) { this.read = read; }
+
+    public UUID getReferenceId() { return referenceId; }
+    public void setReferenceId(UUID referenceId) { this.referenceId = referenceId; }
+
+    public ReferenceType getReferenceType() { return referenceType; }
+    public void setReferenceType(ReferenceType referenceType) { this.referenceType = referenceType; }
 }

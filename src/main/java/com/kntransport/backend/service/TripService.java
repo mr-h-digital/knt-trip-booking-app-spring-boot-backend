@@ -2,9 +2,11 @@ package com.kntransport.backend.service;
 
 import com.kntransport.backend.dto.CreateTripRequest;
 import com.kntransport.backend.dto.PagedResponse;
+import com.kntransport.backend.dto.RateTripRequest;
 import com.kntransport.backend.dto.TripBookingDto;
 import com.kntransport.backend.entity.TripBooking;
 import com.kntransport.backend.entity.User;
+import com.kntransport.backend.exception.BadRequestException;
 import com.kntransport.backend.exception.ResourceNotFoundException;
 import com.kntransport.backend.repository.TripBookingRepository;
 import org.springframework.data.domain.PageRequest;
@@ -53,6 +55,19 @@ public class TripService {
         trip.setNotes(req.notes() != null ? req.notes() : "");
         trip.setStatus(TripBooking.TripStatus.PENDING_QUOTE);
 
+        return TripBookingDto.from(tripRepository.save(trip));
+    }
+
+    public TripBookingDto rateTrip(String email, String id, RateTripRequest req) {
+        TripBooking trip = findTrip(id);
+        if (!trip.getCommuter().getEmail().equals(email)) {
+            throw new ResourceNotFoundException("Trip not found");
+        }
+        if (trip.getStatus() != TripBooking.TripStatus.COMPLETED) {
+            throw new BadRequestException("Only completed trips can be rated");
+        }
+        trip.setRating(req.rating());
+        trip.setRatingComment(req.comment());
         return TripBookingDto.from(tripRepository.save(trip));
     }
 

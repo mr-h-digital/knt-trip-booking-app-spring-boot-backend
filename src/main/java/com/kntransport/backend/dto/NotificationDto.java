@@ -8,7 +8,9 @@ public record NotificationDto(
         String title,
         String body,
         String timestamp,
-        boolean read
+        boolean read,
+        String referenceId,
+        String referenceType
 ) {
     public static NotificationDto from(Notification n) {
         return new NotificationDto(
@@ -17,7 +19,9 @@ public record NotificationDto(
                 n.getTitle(),
                 n.getBody(),
                 n.getTimestamp().toString(),
-                n.isRead()
+                n.isRead(),
+                n.getReferenceId() != null ? n.getReferenceId().toString() : null,
+                n.getReferenceType() != null ? n.getReferenceType().name() : null
         );
     }
 }

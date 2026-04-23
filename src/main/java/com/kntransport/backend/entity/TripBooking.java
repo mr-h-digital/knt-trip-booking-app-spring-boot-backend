@@ -51,6 +51,12 @@ public class TripBooking {
     @Column(name = "vehicle_plate")
     private String vehiclePlate;
 
+    @Column(name = "rating")
+    private Integer rating;
+
+    @Column(name = "rating_comment", length = 500)
+    private String ratingComment;
+
     public enum TripStatus {
         PENDING_QUOTE, QUOTE_SENT, QUOTE_ACCEPTED, CONFIRMED, IN_PROGRESS, COMPLETED, CANCELLED
     }
@@ -95,4 +101,10 @@ public class TripBooking {
 
     public String getVehiclePlate() { return vehiclePlate; }
     public void setVehiclePlate(String vehiclePlate) { this.vehiclePlate = vehiclePlate; }
+
+    public Integer getRating() { return rating; }
+    public void setRating(Integer rating) { this.rating = rating; }
+
+    public String getRatingComment() { return ratingComment; }
+    public void setRatingComment(String ratingComment) { this.ratingComment = ratingComment; }
 }
