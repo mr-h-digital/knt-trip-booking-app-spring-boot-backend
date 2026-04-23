@@ -6,6 +6,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import java.util.List;
 import java.util.UUID;
 
@@ -13,6 +14,16 @@ public interface TripBookingRepository extends JpaRepository<TripBooking, UUID> 
     Page<TripBooking> findByCommuterOrderByDateDescTimeDesc(User commuter, Pageable pageable);
 
     long countByStatus(TripBooking.TripStatus status);
+
+    // ── Driver queries ────────────────────────────────────────────────────────
+    Page<TripBooking> findByDriverOrderByDateDescTimeDesc(User driver, Pageable pageable);
+    List<TripBooking> findByDriverAndStatus(User driver, TripBooking.TripStatus status);
+    List<TripBooking> findByDriverAndDate(User driver, java.time.LocalDate date);
+
+    @Query("SELECT COALESCE(SUM(t.quotedAmount), 0) FROM TripBooking t WHERE t.driver = :driver AND t.status = 'COMPLETED'")
+    double sumCompletedEarningsByDriver(@Param("driver") User driver);
+
+    long countByDriverAndStatus(User driver, TripBooking.TripStatus status);
 
     @Query("SELECT COALESCE(SUM(t.quotedAmount), 0) FROM TripBooking t WHERE t.status = 'COMPLETED'")
     double sumCompletedRevenue();

@@ -23,6 +23,7 @@ public class AdminService {
     private final LiftClubRepository           liftClubRepository;
     private final QuoteRepository              quoteRepository;
     private final LiftClubSubscriptionRepository subscriptionRepository;
+    private final VehicleRepository            vehicleRepository;
     private final PasswordEncoder              passwordEncoder;
 
     public AdminService(UserRepository userRepository,
@@ -30,12 +31,14 @@ public class AdminService {
                         LiftClubRepository liftClubRepository,
                         QuoteRepository quoteRepository,
                         LiftClubSubscriptionRepository subscriptionRepository,
+                        VehicleRepository vehicleRepository,
                         PasswordEncoder passwordEncoder) {
         this.userRepository        = userRepository;
         this.tripRepository        = tripRepository;
         this.liftClubRepository    = liftClubRepository;
         this.quoteRepository       = quoteRepository;
         this.subscriptionRepository = subscriptionRepository;
+        this.vehicleRepository     = vehicleRepository;
         this.passwordEncoder       = passwordEncoder;
     }
 
@@ -229,6 +232,159 @@ public class AdminService {
                 grossRevenue, invoiceCount, avgInvoice, highestInvoice, lowestInvoice,
                 onceOffRevenue, weeklyRevenue, fortnightlyRevenue, monthlyRevenue,
                 lineItems);
+    }
+
+    // ── Vehicle fleet management ──────────────────────────────────────────────
+
+    public Page<VehicleDto> listVehicles(Boolean activeOnly, int page, int size) {
+        PageRequest pr = PageRequest.of(page, size);
+        Page<Vehicle> vehicles = Boolean.TRUE.equals(activeOnly)
+                ? vehicleRepository.findByActiveOrderByMakeAscModelAsc(true, pr)
+                : vehicleRepository.findAllByOrderByMakeAscModelAsc(pr);
+
+        // Build a lookup: vehicleId → assigned driver
+        Map<UUID, User> vehicleToDriver = new HashMap<>();
+        userRepository.findAll().forEach(u -> {
+            if (u.getCurrentVehicle() != null) {
+                vehicleToDriver.put(u.getCurrentVehicle().getId(), u);
+            }
+        });
+
+        return vehicles.map(v -> {
+            User d = vehicleToDriver.get(v.getId());
+            return VehicleDto.from(v,
+                    d != null ? d.getId().toString() : null,
+                    d != null ? d.getName()          : null);
+        });
+    }
+
+    public VehicleDto getVehicle(String id) {
+        Vehicle v = findVehicle(id);
+        User d = userRepository.findAll().stream()
+                .filter(u -> u.getCurrentVehicle() != null && u.getCurrentVehicle().getId().equals(v.getId()))
+                .findFirst().orElse(null);
+        return VehicleDto.from(v, d != null ? d.getId().toString() : null, d != null ? d.getName() : null);
+    }
+
+    @Transactional
+    public VehicleDto createVehicle(VehicleRequest req) {
+        if (vehicleRepository.existsByPlate(req.plate())) {
+            throw new BadRequestException("Vehicle with plate " + req.plate() + " already exists");
+        }
+        Vehicle v = new Vehicle();
+        applyVehicleFields(v, req);
+        return VehicleDto.from(vehicleRepository.save(v), null, null);
+    }
+
+    @Transactional
+    public VehicleDto updateVehicle(String id, VehicleRequest req) {
+        Vehicle v = findVehicle(id);
+        if (!v.getPlate().equals(req.plate()) && vehicleRepository.existsByPlate(req.plate())) {
+            throw new BadRequestException("Plate " + req.plate() + " already in use");
+        }
+        applyVehicleFields(v, req);
+        Vehicle saved = vehicleRepository.save(v);
+        User d = userRepository.findAll().stream()
+                .filter(u -> u.getCurrentVehicle() != null && u.getCurrentVehicle().getId().equals(saved.getId()))
+                .findFirst().orElse(null);
+        return VehicleDto.from(saved, d != null ? d.getId().toString() : null, d != null ? d.getName() : null);
+    }
+
+    @Transactional
+    public void deactivateVehicle(String id) {
+        Vehicle v = findVehicle(id);
+        v.setActive(false);
+        vehicleRepository.save(v);
+        // Unassign from any driver who currently has this vehicle
+        userRepository.findAll().stream()
+                .filter(u -> u.getCurrentVehicle() != null && u.getCurrentVehicle().getId().equals(v.getId()))
+                .forEach(u -> { u.setCurrentVehicle(null); userRepository.save(u); });
+    }
+
+    /**
+     * Assign a vehicle to a driver.
+     * vehicleId null = unassign the driver's current vehicle.
+     */
+    @Transactional
+    public UserDto assignVehicleToDriver(String driverId, AssignVehicleRequest req) {
+        User driver = findUser(driverId);
+        if (driver.getRole() != User.Role.DRIVER) {
+            throw new BadRequestException("User is not a driver");
+        }
+        if (req.vehicleId() == null || req.vehicleId().isBlank()) {
+            driver.setCurrentVehicle(null);
+        } else {
+            Vehicle v = findVehicle(req.vehicleId());
+            if (!v.isActive()) {
+                throw new BadRequestException("Vehicle is not active");
+            }
+            // Unassign from any other driver who already has this vehicle
+            userRepository.findAll().stream()
+                    .filter(u -> !u.getId().equals(driver.getId())
+                              && u.getCurrentVehicle() != null
+                              && u.getCurrentVehicle().getId().equals(v.getId()))
+                    .forEach(u -> { u.setCurrentVehicle(null); userRepository.save(u); });
+            driver.setCurrentVehicle(v);
+        }
+        return UserDto.from(userRepository.save(driver));
+    }
+
+    private void applyVehicleFields(Vehicle v, VehicleRequest req) {
+        v.setMake(req.make());
+        v.setModel(req.model());
+        v.setColour(req.colour());
+        v.setPlate(req.plate().toUpperCase());
+        v.setYear(req.year());
+        v.setVehicleType(req.vehicleType() != null
+                ? Vehicle.VehicleType.valueOf(req.vehicleType().toUpperCase())
+                : Vehicle.VehicleType.MINIBUS);
+        v.setPhotoUrl(req.photoUrl());
+        v.setNotes(req.notes());
+        v.setActive(true);
+    }
+
+    private Vehicle findVehicle(String id) {
+        return vehicleRepository.findById(UUID.fromString(id))
+                .orElseThrow(() -> new ResourceNotFoundException("Vehicle not found: " + id));
+    }
+
+    // ── Trip management ───────────────────────────────────────────────────────
+
+    /** All trips across all commuters (admin view). */
+    public PagedResponse<TripBookingDto> listAllTrips(int page, int size) {
+        return PagedResponse.from(
+                tripRepository.findAll(PageRequest.of(page, size)),
+                TripBookingDto::from);
+    }
+
+    /** Assign a driver to a trip and update driverName for display. */
+    @Transactional
+    public TripBookingDto assignDriver(String tripId, AssignDriverRequest req) {
+        TripBooking trip = tripRepository.findById(UUID.fromString(tripId))
+                .orElseThrow(() -> new ResourceNotFoundException("Trip not found: " + tripId));
+
+        User driver = userRepository.findById(UUID.fromString(req.driverId()))
+                .orElseThrow(() -> new ResourceNotFoundException("Driver not found: " + req.driverId()));
+
+        if (driver.getRole() != User.Role.DRIVER) {
+            throw new BadRequestException("User is not a driver: " + req.driverId());
+        }
+
+        trip.setDriver(driver);
+        trip.setDriverName(driver.getName());
+        // Snapshot the driver's current vehicle onto the trip
+        if (driver.getCurrentVehicle() != null) {
+            trip.setVehicle(driver.getCurrentVehicle());
+            trip.setVehicleInfo(driver.getCurrentVehicle().getMake() + " "
+                    + driver.getCurrentVehicle().getModel() + " — "
+                    + driver.getCurrentVehicle().getColour());
+            trip.setVehiclePlate(driver.getCurrentVehicle().getPlate());
+        }
+        if (trip.getStatus() == TripBooking.TripStatus.PENDING_QUOTE ||
+            trip.getStatus() == TripBooking.TripStatus.QUOTE_ACCEPTED) {
+            trip.setStatus(TripBooking.TripStatus.CONFIRMED);
+        }
+        return TripBookingDto.from(tripRepository.save(trip));
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────

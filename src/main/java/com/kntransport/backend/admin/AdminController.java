@@ -56,6 +56,75 @@ public class AdminController {
         adminService.deleteUser(id);
     }
 
+    // ── Vehicle fleet management ──────────────────────────────────────────────
+
+    /**
+     * List the fleet. Optional ?active=true to return only active vehicles.
+     */
+    @GetMapping("/vehicles")
+    public Page<VehicleDto> listVehicles(
+            @RequestParam(required = false) Boolean active,
+            @RequestParam(defaultValue = "0")  int page,
+            @RequestParam(defaultValue = "20") int size) {
+        return adminService.listVehicles(active, page, size);
+    }
+
+    @GetMapping("/vehicles/{id}")
+    public VehicleDto getVehicle(@PathVariable String id) {
+        return adminService.getVehicle(id);
+    }
+
+    /** Add a new vehicle to the fleet. */
+    @PostMapping("/vehicles")
+    @ResponseStatus(HttpStatus.CREATED)
+    public VehicleDto createVehicle(@Valid @RequestBody VehicleRequest request) {
+        return adminService.createVehicle(request);
+    }
+
+    /** Update a vehicle's details. */
+    @PutMapping("/vehicles/{id}")
+    public VehicleDto updateVehicle(
+            @PathVariable String id,
+            @Valid @RequestBody VehicleRequest request) {
+        return adminService.updateVehicle(id, request);
+    }
+
+    /** Deactivate (soft-delete) a vehicle and unassign from any driver. */
+    @DeleteMapping("/vehicles/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deactivateVehicle(@PathVariable String id) {
+        adminService.deactivateVehicle(id);
+    }
+
+    /**
+     * Assign a vehicle to a driver.
+     * Body: { "vehicleId": "uuid" } — pass null/empty vehicleId to unassign.
+     */
+    @PatchMapping("/drivers/{driverId}/assign-vehicle")
+    public UserDto assignVehicleToDriver(
+            @PathVariable String driverId,
+            @RequestBody AssignVehicleRequest request) {
+        return adminService.assignVehicleToDriver(driverId, request);
+    }
+
+    // ── Trip management (admin view) ──────────────────────────────────────────
+
+    /** All trips across all commuters. */
+    @GetMapping("/trips")
+    public PagedResponse<TripBookingDto> listAllTrips(
+            @RequestParam(defaultValue = "0")  int page,
+            @RequestParam(defaultValue = "20") int size) {
+        return adminService.listAllTrips(page, size);
+    }
+
+    /** Assign a driver to a trip. Body: { "driverId": "uuid" } */
+    @PatchMapping("/trips/{tripId}/assign-driver")
+    public TripBookingDto assignDriver(
+            @PathVariable String tripId,
+            @Valid @RequestBody AssignDriverRequest request) {
+        return adminService.assignDriver(tripId, request);
+    }
+
     // ── Analytics dashboard ───────────────────────────────────────────────────
 
     @GetMapping("/analytics")

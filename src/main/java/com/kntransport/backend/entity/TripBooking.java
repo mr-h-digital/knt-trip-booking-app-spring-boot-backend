@@ -42,6 +42,16 @@ public class TripBooking {
     @Column(name = "quoted_amount")
     private Double quotedAmount;
 
+    /** The assigned driver (nullable until a driver is assigned). */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "driver_id")
+    private User driver;
+
+    /** Snapshot of the vehicle at trip assignment time (nullable). */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "vehicle_id")
+    private Vehicle vehicle;
+
     @Column(name = "driver_name")
     private String driverName;
 
@@ -92,6 +102,12 @@ public class TripBooking {
 
     public Double getQuotedAmount() { return quotedAmount; }
     public void setQuotedAmount(Double quotedAmount) { this.quotedAmount = quotedAmount; }
+
+    public User getDriver() { return driver; }
+    public void setDriver(User driver) { this.driver = driver; }
+
+    public Vehicle getVehicle() { return vehicle; }
+    public void setVehicle(Vehicle vehicle) { this.vehicle = vehicle; }
 
     public String getDriverName() { return driverName; }
     public void setDriverName(String driverName) { this.driverName = driverName; }

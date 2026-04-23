@@ -30,6 +30,11 @@ public class User {
     @Column(name = "avatar_url")
     private String avatarUrl;
 
+    /** The vehicle currently assigned to this driver by the admin (nullable). */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "current_vehicle_id")
+    private Vehicle currentVehicle;
+
     public enum Role { COMMUTER, DRIVER, ADMIN }
 
     // ── Getters / Setters ─────────────────────────────────────────────────────
@@ -54,4 +59,7 @@ public class User {
 
     public String getAvatarUrl() { return avatarUrl; }
     public void setAvatarUrl(String avatarUrl) { this.avatarUrl = avatarUrl; }
+
+    public Vehicle getCurrentVehicle() { return currentVehicle; }
+    public void setCurrentVehicle(Vehicle currentVehicle) { this.currentVehicle = currentVehicle; }
 }
