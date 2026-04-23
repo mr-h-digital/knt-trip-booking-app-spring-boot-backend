@@ -8,4 +8,5 @@ import java.util.UUID;
 
 public interface LiftClubRepository extends JpaRepository<LiftClub, UUID> {
     Page<LiftClub> findAllByOrderByIdDesc(Pageable pageable);
+    long countByStatus(LiftClub.LiftClubStatus status);
 }
