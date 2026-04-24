@@ -25,11 +25,11 @@ public class AdminController {
 
     /** List all users, optionally filtered by role: COMMUTER | DRIVER | ADMIN */
     @GetMapping("/users")
-    public Page<UserDto> listUsers(
+    public PagedResponse<UserDto> listUsers(
             @RequestParam(required = false) String role,
             @RequestParam(defaultValue = "0")  int page,
-            @RequestParam(defaultValue = "20") int size) {
-        return adminService.listUsers(role, page, size);
+            @RequestParam(defaultValue = "50") int size) {
+        return PagedResponse.from(adminService.listUsers(role, page, size), u -> u);
     }
 
     @GetMapping("/users/{id}")

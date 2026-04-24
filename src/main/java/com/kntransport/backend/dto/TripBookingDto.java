@@ -24,6 +24,7 @@ public record TripBookingDto(
         String vehiclePlate,
         String vehicleType,
         String vehiclePhotoUrl,
+        String driverAvatarUrl,
         // ── Legacy string fields (kept for backwards compat) ──────────────────
         String vehicleInfo,
         Integer rating
@@ -44,13 +45,14 @@ public record TripBookingDto(
                 t.getCommuter() != null ? t.getCommuter().getPhone() : null,
                 t.getDriverName(),
                 t.getDriver() != null ? t.getDriver().getId().toString() : null,
-                v != null ? v.getId().toString()        : null,
-                v != null ? v.getMake()                 : null,
-                v != null ? v.getModel()                : null,
-                v != null ? v.getColour()               : null,
-                v != null ? v.getPlate()                : t.getVehiclePlate(),
-                v != null ? v.getVehicleType().name()   : null,
-                v != null ? v.getPhotoUrl()             : null,
+                v != null ? v.getId().toString()                : null,
+                v != null ? v.getMake()                         : null,
+                v != null ? v.getModel()                        : null,
+                v != null ? v.getColour()                       : null,
+                v != null ? v.getPlate()                        : t.getVehiclePlate(),
+                v != null ? v.getVehicleType().name()           : null,
+                v != null ? v.getPhotoUrl()                     : null,
+                t.getDriver() != null ? t.getDriver().getAvatarUrl() : null,
                 t.getVehicleInfo(),
                 t.getRating()
         );
