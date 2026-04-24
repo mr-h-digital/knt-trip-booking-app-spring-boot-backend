@@ -46,6 +46,15 @@ public class DriverController {
         return driverService.updateStatus(principal.getUsername(), id, request);
     }
 
+    /** Driver cancels a trip (e.g. unable to fulfil). */
+    @PatchMapping("/trips/{id}/cancel")
+    public TripBookingDto cancelTrip(
+            @AuthenticationPrincipal UserDetails principal,
+            @PathVariable String id,
+            @Valid @RequestBody CancelTripRequest request) {
+        return driverService.cancelTrip(principal.getUsername(), id, request);
+    }
+
     /** Driver earnings and trip-count summary. */
     @GetMapping("/earnings")
     public DriverEarningsDto getEarnings(@AuthenticationPrincipal UserDetails principal) {

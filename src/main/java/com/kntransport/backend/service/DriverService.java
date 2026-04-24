@@ -1,5 +1,6 @@
 package com.kntransport.backend.service;
 
+import com.kntransport.backend.dto.CancelTripRequest;
 import com.kntransport.backend.dto.DriverEarningsDto;
 import com.kntransport.backend.dto.PagedResponse;
 import com.kntransport.backend.dto.TripBookingDto;
@@ -79,6 +80,23 @@ public class DriverService {
         }
 
         trip.setStatus(newStatus);
+        return TripBookingDto.from(tripRepository.save(trip));
+    }
+
+    /** Driver cancels a trip they are assigned to. */
+    @Transactional
+    public TripBookingDto cancelTrip(String email, String tripId, CancelTripRequest req) {
+        User driver = getDriver(email);
+        TripBooking trip = findTrip(tripId);
+
+        if (trip.getDriver() == null || !trip.getDriver().getId().equals(driver.getId())) {
+            throw new ResourceNotFoundException("Trip not found");
+        }
+        if (trip.getStatus() == TripBooking.TripStatus.COMPLETED ||
+            trip.getStatus() == TripBooking.TripStatus.CANCELLED) {
+            throw new BadRequestException("Trip cannot be cancelled in status: " + trip.getStatus());
+        }
+        trip.setStatus(TripBooking.TripStatus.CANCELLED);
         return TripBookingDto.from(tripRepository.save(trip));
     }
 

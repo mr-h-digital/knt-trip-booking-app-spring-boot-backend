@@ -1,5 +1,6 @@
 package com.kntransport.backend.controller;
 
+import com.kntransport.backend.dto.CancelTripRequest;
 import com.kntransport.backend.dto.CreateTripRequest;
 import com.kntransport.backend.dto.PagedResponse;
 import com.kntransport.backend.dto.RateTripRequest;
@@ -42,6 +43,14 @@ public class TripController {
             @AuthenticationPrincipal UserDetails principal,
             @Valid @RequestBody CreateTripRequest request) {
         return tripService.createTrip(principal.getUsername(), request);
+    }
+
+    @PatchMapping("/{id}/cancel")
+    public TripBookingDto cancelTrip(
+            @AuthenticationPrincipal UserDetails principal,
+            @PathVariable String id,
+            @Valid @RequestBody CancelTripRequest request) {
+        return tripService.cancelTrip(principal.getUsername(), id, request);
     }
 
     @PostMapping("/{id}/rate")

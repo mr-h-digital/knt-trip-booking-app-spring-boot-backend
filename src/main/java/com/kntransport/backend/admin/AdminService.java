@@ -5,18 +5,27 @@ import com.kntransport.backend.entity.*;
 import com.kntransport.backend.exception.BadRequestException;
 import com.kntransport.backend.exception.ResourceNotFoundException;
 import com.kntransport.backend.repository.*;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
 public class AdminService {
+
+    @Value("${app.upload.dir:uploads}")
+    private String uploadDir;
 
     private final UserRepository               userRepository;
     private final TripBookingRepository        tripRepository;
@@ -301,6 +310,33 @@ public class AdminService {
                 .forEach(u -> { u.setCurrentVehicle(null); userRepository.save(u); });
     }
 
+    public VehicleDto uploadVehiclePhoto(String id, MultipartFile file) throws IOException {
+        if (file.isEmpty()) {
+            throw new BadRequestException("Photo file is empty");
+        }
+        if (System.getenv("RAILWAY_ENVIRONMENT") != null) {
+            throw new BadRequestException(
+                "Vehicle photo upload is not yet supported on this server. " +
+                "Please provide a photoUrl via the update vehicle endpoint instead.");
+        }
+        Path dir = Paths.get(uploadDir, "vehicles").toAbsolutePath();
+        Files.createDirectories(dir);
+        String ext      = getFileExtension(file.getOriginalFilename());
+        String filename = UUID.randomUUID() + ext;
+        file.transferTo(dir.resolve(filename));
+
+        Vehicle v = findVehicle(id);
+        v.setPhotoUrl("/uploads/vehicles/" + filename);
+        return VehicleDto.from(vehicleRepository.save(v), null, null);
+    }
+
+    @Transactional
+    public VehicleDto reactivateVehicle(String id) {
+        Vehicle v = findVehicle(id);
+        v.setActive(true);
+        return VehicleDto.from(vehicleRepository.save(v), null, null);
+    }
+
     /**
      * Assign a vehicle to a driver.
      * vehicleId null = unassign the driver's current vehicle.
@@ -346,6 +382,12 @@ public class AdminService {
     private Vehicle findVehicle(String id) {
         return vehicleRepository.findById(UUID.fromString(id))
                 .orElseThrow(() -> new ResourceNotFoundException("Vehicle not found: " + id));
+    }
+
+    private String getFileExtension(String filename) {
+        if (filename == null) return ".jpg";
+        int dot = filename.lastIndexOf('.');
+        return dot >= 0 ? filename.substring(dot) : ".jpg";
     }
 
     // ── Trip management ───────────────────────────────────────────────────────

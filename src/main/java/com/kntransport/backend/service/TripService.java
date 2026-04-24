@@ -1,5 +1,6 @@
 package com.kntransport.backend.service;
 
+import com.kntransport.backend.dto.CancelTripRequest;
 import com.kntransport.backend.dto.CreateTripRequest;
 import com.kntransport.backend.dto.PagedResponse;
 import com.kntransport.backend.dto.RateTripRequest;
@@ -55,6 +56,19 @@ public class TripService {
         trip.setNotes(req.notes() != null ? req.notes() : "");
         trip.setStatus(TripBooking.TripStatus.PENDING_QUOTE);
 
+        return TripBookingDto.from(tripRepository.save(trip));
+    }
+
+    public TripBookingDto cancelTrip(String email, String id, CancelTripRequest req) {
+        TripBooking trip = findTrip(id);
+        if (!trip.getCommuter().getEmail().equals(email)) {
+            throw new ResourceNotFoundException("Trip not found");
+        }
+        if (trip.getStatus() == TripBooking.TripStatus.COMPLETED ||
+            trip.getStatus() == TripBooking.TripStatus.CANCELLED) {
+            throw new BadRequestException("Trip cannot be cancelled in status: " + trip.getStatus());
+        }
+        trip.setStatus(TripBooking.TripStatus.CANCELLED);
         return TripBookingDto.from(tripRepository.save(trip));
     }
 

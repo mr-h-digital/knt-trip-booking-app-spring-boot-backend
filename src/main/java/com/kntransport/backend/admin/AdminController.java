@@ -7,6 +7,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.io.IOException;
 
 @RestController
 @RequestMapping("/api/admin")
@@ -94,6 +97,20 @@ public class AdminController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deactivateVehicle(@PathVariable String id) {
         adminService.deactivateVehicle(id);
+    }
+
+    /** Reactivate a previously deactivated vehicle. */
+    @PatchMapping("/vehicles/{id}/reactivate")
+    public VehicleDto reactivateVehicle(@PathVariable String id) {
+        return adminService.reactivateVehicle(id);
+    }
+
+    /** Upload or replace a vehicle's photo. */
+    @PostMapping("/vehicles/{id}/photo")
+    public VehicleDto uploadVehiclePhoto(
+            @PathVariable String id,
+            @RequestPart("photo") MultipartFile file) throws IOException {
+        return adminService.uploadVehiclePhoto(id, file);
     }
 
     /**
