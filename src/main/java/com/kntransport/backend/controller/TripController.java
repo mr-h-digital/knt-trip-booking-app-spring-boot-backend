@@ -2,9 +2,11 @@ package com.kntransport.backend.controller;
 
 import com.kntransport.backend.dto.CancelTripRequest;
 import com.kntransport.backend.dto.CreateTripRequest;
+import com.kntransport.backend.dto.DriverLocationDto;
 import com.kntransport.backend.dto.PagedResponse;
 import com.kntransport.backend.dto.RateTripRequest;
 import com.kntransport.backend.dto.TripBookingDto;
+import com.kntransport.backend.service.DriverLocationService;
 import com.kntransport.backend.service.TripService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -16,10 +18,12 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/trips")
 public class TripController {
 
-    private final TripService tripService;
+    private final TripService           tripService;
+    private final DriverLocationService locationService;
 
-    public TripController(TripService tripService) {
-        this.tripService = tripService;
+    public TripController(TripService tripService, DriverLocationService locationService) {
+        this.tripService     = tripService;
+        this.locationService = locationService;
     }
 
     @GetMapping
@@ -59,5 +63,13 @@ public class TripController {
             @PathVariable String id,
             @Valid @RequestBody RateTripRequest request) {
         return tripService.rateTrip(principal.getUsername(), id, request);
+    }
+
+    /** Returns the driver's last known position for an in-progress trip. */
+    @GetMapping("/{id}/location")
+    public DriverLocationDto getLocation(
+            @AuthenticationPrincipal UserDetails principal,
+            @PathVariable String id) {
+        return locationService.getLocation(principal.getUsername(), id);
     }
 }

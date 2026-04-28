@@ -28,6 +28,12 @@ public class GlobalExceptionHandler {
                 .body(new ApiError(ex.getMessage(), 400));
     }
 
+    @ExceptionHandler(ForbiddenException.class)
+    public ResponseEntity<ApiError> handleForbidden(ForbiddenException ex) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(new ApiError(ex.getMessage(), 403));
+    }
+
     @ExceptionHandler(BadCredentialsException.class)
     public ResponseEntity<ApiError> handleBadCredentials(BadCredentialsException ex) {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)

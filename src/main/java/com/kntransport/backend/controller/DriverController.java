@@ -1,8 +1,10 @@
 package com.kntransport.backend.controller;
 
 import com.kntransport.backend.dto.*;
+import com.kntransport.backend.service.DriverLocationService;
 import com.kntransport.backend.service.DriverService;
 import jakarta.validation.Valid;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
@@ -11,10 +13,12 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/driver")
 public class DriverController {
 
-    private final DriverService driverService;
+    private final DriverService         driverService;
+    private final DriverLocationService locationService;
 
-    public DriverController(DriverService driverService) {
-        this.driverService = driverService;
+    public DriverController(DriverService driverService, DriverLocationService locationService) {
+        this.driverService   = driverService;
+        this.locationService = locationService;
     }
 
     /** All trips assigned to the authenticated driver, newest first. */
@@ -53,6 +57,16 @@ public class DriverController {
             @PathVariable String id,
             @Valid @RequestBody CancelTripRequest request) {
         return driverService.cancelTrip(principal.getUsername(), id, request);
+    }
+
+    /** Driver pushes their current GPS position for an in-progress trip. */
+    @PutMapping("/trips/{id}/location")
+    public ResponseEntity<Void> updateLocation(
+            @AuthenticationPrincipal UserDetails principal,
+            @PathVariable String id,
+            @Valid @RequestBody UpdateLocationRequest request) {
+        locationService.updateLocation(principal.getUsername(), id, request);
+        return ResponseEntity.ok().build();
     }
 
     /** Driver earnings and trip-count summary. */
