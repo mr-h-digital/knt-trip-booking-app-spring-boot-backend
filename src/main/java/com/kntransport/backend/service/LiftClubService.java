@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalTime;
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -61,6 +62,22 @@ public class LiftClubService {
         lc.setStatus(LiftClub.LiftClubStatus.OPEN);
 
         return LiftClubDto.from(liftClubRepository.save(lc), 0);
+    }
+
+    public List<LiftClubDto> getMySubscriptions(String email) {
+        User user = userService.getByEmail(email);
+        return subscriptionRepository.findByUser(user).stream()
+                .map(sub -> LiftClubDto.from(
+                        sub.getLiftClub(),
+                        subscriptionRepository.countByLiftClub(sub.getLiftClub())))
+                .toList();
+    }
+
+    public List<LiftClubDto> getMyClubs(String email) {
+        User user = userService.getByEmail(email);
+        return liftClubRepository.findByCreatorOrderByIdDesc(user).stream()
+                .map(lc -> LiftClubDto.from(lc, subscriptionRepository.countByLiftClub(lc)))
+                .toList();
     }
 
     @Transactional

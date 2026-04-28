@@ -10,6 +10,8 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/api/lift-clubs")
 public class LiftClubController {
@@ -38,6 +40,16 @@ public class LiftClubController {
             @AuthenticationPrincipal UserDetails principal,
             @Valid @RequestBody CreateLiftClubRequest request) {
         return liftClubService.createLiftClub(principal.getUsername(), request);
+    }
+
+    @GetMapping("/my-subscriptions")
+    public List<LiftClubDto> getMySubscriptions(@AuthenticationPrincipal UserDetails principal) {
+        return liftClubService.getMySubscriptions(principal.getUsername());
+    }
+
+    @GetMapping("/my-clubs")
+    public List<LiftClubDto> getMyClubs(@AuthenticationPrincipal UserDetails principal) {
+        return liftClubService.getMyClubs(principal.getUsername());
     }
 
     @PostMapping("/{id}/subscribe")
