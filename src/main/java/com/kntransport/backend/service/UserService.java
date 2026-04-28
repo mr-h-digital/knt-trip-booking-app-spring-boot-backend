@@ -58,15 +58,6 @@ public class UserService {
             throw new BadRequestException("Avatar file is empty");
         }
 
-        // Block uploads on Railway until cloud storage (S3/R2) is configured,
-        // because the Railway filesystem is ephemeral and files will not persist.
-        if (System.getenv("RAILWAY_ENVIRONMENT") != null) {
-            throw new BadRequestException(
-                "Avatar file upload is not yet supported on this server. " +
-                "Please provide an avatar URL via profile update instead."
-            );
-        }
-
         Path dir = Paths.get(uploadDir, "avatars").toAbsolutePath();
         Files.createDirectories(dir);
 
