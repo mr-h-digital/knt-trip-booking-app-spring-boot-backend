@@ -4,6 +4,7 @@ import com.kntransport.backend.dto.*;
 import com.kntransport.backend.service.DriverLocationService;
 import com.kntransport.backend.service.DriverService;
 import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -73,5 +74,42 @@ public class DriverController {
     @GetMapping("/earnings")
     public DriverEarningsDto getEarnings(@AuthenticationPrincipal UserDetails principal) {
         return driverService.getEarnings(principal.getUsername());
+    }
+
+    // ── Option-C marketplace endpoints ────────────────────────────────────────
+
+    /** All PENDING_QUOTE trips the driver can browse and quote. */
+    @GetMapping("/available-trips")
+    public PagedResponse<TripBookingDto> getAvailableTrips(
+            @RequestParam(defaultValue = "0")  int page,
+            @RequestParam(defaultValue = "20") int size) {
+        return driverService.browseOpenTrips(page, size);
+    }
+
+    /** Driver submits a quote for a trip. */
+    @PostMapping("/trips/{id}/quote")
+    public QuoteDto createQuote(
+            @AuthenticationPrincipal UserDetails principal,
+            @PathVariable String id,
+            @Valid @RequestBody DriverQuoteRequest request) {
+        return driverService.createQuote(principal.getUsername(), id, request);
+    }
+
+    /** Driver edits their pending quote. */
+    @PutMapping("/quotes/{quoteId}")
+    public QuoteDto editQuote(
+            @AuthenticationPrincipal UserDetails principal,
+            @PathVariable String quoteId,
+            @Valid @RequestBody DriverQuoteRequest request) {
+        return driverService.editQuote(principal.getUsername(), quoteId, request);
+    }
+
+    /** Driver retracts their pending quote. */
+    @DeleteMapping("/quotes/{quoteId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void cancelQuote(
+            @AuthenticationPrincipal UserDetails principal,
+            @PathVariable String quoteId) {
+        driverService.cancelQuote(principal.getUsername(), quoteId);
     }
 }

@@ -12,6 +12,7 @@ import java.util.UUID;
 
 public interface TripBookingRepository extends JpaRepository<TripBooking, UUID> {
     Page<TripBooking> findByCommuterOrderByDateDescTimeDesc(User commuter, Pageable pageable);
+    Page<TripBooking> findByStatusOrderByDateAscTimeAsc(TripBooking.TripStatus status, Pageable pageable);
 
     long countByStatus(TripBooking.TripStatus status);
 

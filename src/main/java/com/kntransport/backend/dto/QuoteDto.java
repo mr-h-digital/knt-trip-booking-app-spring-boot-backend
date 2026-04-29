@@ -8,7 +8,9 @@ public record QuoteDto(
         String referenceType,
         double amount,
         String paymentCycle,
-        String driverNote
+        String driverNote,
+        String driverName,
+        boolean cancelled
 ) {
     public static QuoteDto from(Quote q) {
         return new QuoteDto(
@@ -17,7 +19,9 @@ public record QuoteDto(
                 q.getReferenceType().name(),
                 q.getAmount(),
                 q.getPaymentCycle() != null ? q.getPaymentCycle().name() : null,
-                q.getDriverNote() != null ? q.getDriverNote() : ""
+                q.getDriverNote() != null ? q.getDriverNote() : "",
+                q.getCreatedByDriver() != null ? q.getCreatedByDriver().getName() : null,
+                q.isCancelled()
         );
     }
 }

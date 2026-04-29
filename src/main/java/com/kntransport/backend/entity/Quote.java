@@ -1,6 +1,7 @@
 package com.kntransport.backend.entity;
 
 import jakarta.persistence.*;
+import java.util.List;
 import java.util.UUID;
 
 @Entity
@@ -32,6 +33,15 @@ public class Quote {
     @Column(nullable = false)
     private Boolean accepted;
 
+    /** Driver who created this quote (null for admin-created quotes). */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "created_by_driver_id")
+    private User createdByDriver;
+
+    /** True when the driver has retracted this quote before the commuter responded. */
+    @Column(nullable = false)
+    private boolean cancelled = false;
+
     public enum ReferenceType { TRIP, LIFT_CLUB }
 
     // ── Getters / Setters ─────────────────────────────────────────────────────
@@ -56,4 +66,10 @@ public class Quote {
 
     public Boolean getAccepted() { return accepted; }
     public void setAccepted(Boolean accepted) { this.accepted = accepted; }
+
+    public User getCreatedByDriver() { return createdByDriver; }
+    public void setCreatedByDriver(User createdByDriver) { this.createdByDriver = createdByDriver; }
+
+    public boolean isCancelled() { return cancelled; }
+    public void setCancelled(boolean cancelled) { this.cancelled = cancelled; }
 }

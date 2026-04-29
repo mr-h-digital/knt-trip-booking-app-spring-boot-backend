@@ -11,6 +11,11 @@ import java.util.UUID;
 public interface QuoteRepository extends JpaRepository<Quote, UUID> {
     Optional<Quote> findByReferenceIdAndReferenceType(UUID referenceId, Quote.ReferenceType referenceType);
 
+    List<Quote> findAllByReferenceIdAndReferenceType(UUID referenceId, Quote.ReferenceType referenceType);
+
+    Optional<Quote> findByReferenceIdAndReferenceTypeAndCreatedByDriverId(
+            UUID referenceId, Quote.ReferenceType referenceType, UUID driverId);
+
     /** All quotes with a date filter driven by the trip/liftclub date stored on the referencing entity. */
     @Query("SELECT q FROM Quote q WHERE q.accepted IS NOT NULL ORDER BY q.id DESC")
     List<Quote> findAllDecided();
