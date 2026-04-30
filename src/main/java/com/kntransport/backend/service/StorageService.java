@@ -76,6 +76,10 @@ public class StorageService {
                 .region(Region.of("auto"))
                 .credentialsProvider(StaticCredentialsProvider.create(
                         AwsBasicCredentials.create(accessKeyId, secretKey)))
+                // R2 requires path-style URLs — virtual-hosted style DNS does not resolve
+                .serviceConfiguration(software.amazon.awssdk.services.s3.S3Configuration.builder()
+                        .pathStyleAccessEnabled(true)
+                        .build())
                 .build();
 
         PutObjectRequest put = PutObjectRequest.builder()
