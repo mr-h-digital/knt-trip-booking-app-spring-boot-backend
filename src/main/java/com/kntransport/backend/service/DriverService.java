@@ -12,6 +12,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.EnumSet;
 import java.util.UUID;
 
 @Service
@@ -118,10 +119,13 @@ public class DriverService {
 
     // ── Available trips (marketplace) ─────────────────────────────────────────
 
+    private static final EnumSet<TripBooking.TripStatus> OPEN_STATUSES =
+            EnumSet.of(TripBooking.TripStatus.PENDING_QUOTE, TripBooking.TripStatus.QUOTE_SENT);
+
     /** All PENDING_QUOTE and QUOTE_SENT trips visible to any authenticated driver. */
     public PagedResponse<TripBookingDto> browseOpenTrips(int page, int size) {
         return PagedResponse.from(
-                tripRepository.findOpenTrips(PageRequest.of(page, size)),
+                tripRepository.findByStatusInOrderByDateAscTimeAsc(OPEN_STATUSES, PageRequest.of(page, size)),
                 TripBookingDto::from);
     }
 
@@ -131,7 +135,7 @@ public class DriverService {
      */
     public TripBookingDto getOpenTrip(String email, String tripId) {
         User driver = getDriver(email);
-        TripBooking trip = tripRepository.findOpenTripById(UUID.fromString(tripId))
+        TripBooking trip = tripRepository.findByIdAndStatusIn(UUID.fromString(tripId), OPEN_STATUSES)
                 .orElseThrow(() -> new ResourceNotFoundException("Trip not available: " + tripId));
 
         Quote myQuote = quoteRepository
