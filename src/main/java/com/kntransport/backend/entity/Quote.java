@@ -30,7 +30,7 @@ public class Quote {
     @Column(name = "driver_note", length = 1000)
     private String driverNote = "";
 
-    @Column(nullable = false)
+    @Column(nullable = true)
     private Boolean accepted;
 
     /** Driver who created this quote (null for admin-created quotes). */
