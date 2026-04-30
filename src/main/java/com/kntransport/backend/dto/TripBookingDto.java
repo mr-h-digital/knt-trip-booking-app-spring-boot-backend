@@ -1,5 +1,6 @@
 package com.kntransport.backend.dto;
 
+import com.kntransport.backend.entity.Quote;
 import com.kntransport.backend.entity.TripBooking;
 
 public record TripBookingDto(
@@ -27,9 +28,15 @@ public record TripBookingDto(
         String driverAvatarUrl,
         // ── Legacy string fields (kept for backwards compat) ──────────────────
         String vehicleInfo,
-        Integer rating
+        Integer rating,
+        // ── Driver's own quote for this trip (null unless explicitly loaded) ──
+        QuoteDto myQuote
 ) {
     public static TripBookingDto from(TripBooking t) {
+        return fromWithMyQuote(t, null);
+    }
+
+    public static TripBookingDto fromWithMyQuote(TripBooking t, Quote myQuote) {
         var v = t.getVehicle();
         return new TripBookingDto(
                 t.getId().toString(),
@@ -54,7 +61,8 @@ public record TripBookingDto(
                 v != null ? v.getPhotoUrl()                     : null,
                 t.getDriver() != null ? t.getDriver().getAvatarUrl() : null,
                 t.getVehicleInfo(),
-                t.getRating()
+                t.getRating(),
+                myQuote != null ? QuoteDto.from(myQuote) : null
         );
     }
 }

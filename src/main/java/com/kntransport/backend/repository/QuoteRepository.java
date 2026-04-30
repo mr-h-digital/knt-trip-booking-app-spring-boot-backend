@@ -13,7 +13,13 @@ public interface QuoteRepository extends JpaRepository<Quote, UUID> {
 
     List<Quote> findAllByReferenceIdAndReferenceType(UUID referenceId, Quote.ReferenceType referenceType);
 
+    List<Quote> findAllByReferenceIdAndReferenceTypeAndCancelledFalse(
+            UUID referenceId, Quote.ReferenceType referenceType);
+
     Optional<Quote> findByReferenceIdAndReferenceTypeAndCreatedByDriverId(
+            UUID referenceId, Quote.ReferenceType referenceType, UUID driverId);
+
+    Optional<Quote> findByReferenceIdAndReferenceTypeAndCreatedByDriverIdAndCancelledFalse(
             UUID referenceId, Quote.ReferenceType referenceType, UUID driverId);
 
     /** All quotes with a date filter driven by the trip/liftclub date stored on the referencing entity. */

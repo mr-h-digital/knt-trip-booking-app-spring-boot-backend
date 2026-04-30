@@ -78,12 +78,28 @@ public class DriverController {
 
     // ── Option-C marketplace endpoints ────────────────────────────────────────
 
-    /** All PENDING_QUOTE trips the driver can browse and quote. */
+    /** All PENDING_QUOTE / QUOTE_SENT trips the driver can browse and quote. */
     @GetMapping("/available-trips")
     public PagedResponse<TripBookingDto> getAvailableTrips(
             @RequestParam(defaultValue = "0")  int page,
             @RequestParam(defaultValue = "20") int size) {
         return driverService.browseOpenTrips(page, size);
+    }
+
+    /** Single available trip detail — also embeds this driver's own quote if present. */
+    @GetMapping("/available-trips/{id}")
+    public TripBookingDto getAvailableTrip(
+            @AuthenticationPrincipal UserDetails principal,
+            @PathVariable String id) {
+        return driverService.getOpenTrip(principal.getUsername(), id);
+    }
+
+    /** Returns this driver's active quote for an assigned trip. */
+    @GetMapping("/trips/{id}/my-quote")
+    public QuoteDto getMyQuoteForTrip(
+            @AuthenticationPrincipal UserDetails principal,
+            @PathVariable String id) {
+        return driverService.getMyQuoteForTrip(principal.getUsername(), id);
     }
 
     /** Driver submits a quote for a trip. */

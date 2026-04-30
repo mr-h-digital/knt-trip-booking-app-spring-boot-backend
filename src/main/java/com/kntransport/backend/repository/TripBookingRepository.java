@@ -14,6 +14,12 @@ public interface TripBookingRepository extends JpaRepository<TripBooking, UUID> 
     Page<TripBooking> findByCommuterOrderByDateDescTimeDesc(User commuter, Pageable pageable);
     Page<TripBooking> findByStatusOrderByDateAscTimeAsc(TripBooking.TripStatus status, Pageable pageable);
 
+    @Query("SELECT t FROM TripBooking t WHERE t.status IN ('PENDING_QUOTE', 'QUOTE_SENT') ORDER BY t.date ASC, t.time ASC")
+    Page<TripBooking> findOpenTrips(Pageable pageable);
+
+    @Query("SELECT t FROM TripBooking t WHERE t.id = :id AND t.status IN ('PENDING_QUOTE', 'QUOTE_SENT')")
+    java.util.Optional<TripBooking> findOpenTripById(@Param("id") UUID id);
+
     long countByStatus(TripBooking.TripStatus status);
 
     // ── Driver queries ────────────────────────────────────────────────────────

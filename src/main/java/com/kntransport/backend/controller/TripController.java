@@ -4,10 +4,13 @@ import com.kntransport.backend.dto.CancelTripRequest;
 import com.kntransport.backend.dto.CreateTripRequest;
 import com.kntransport.backend.dto.DriverLocationDto;
 import com.kntransport.backend.dto.PagedResponse;
+import com.kntransport.backend.dto.QuoteDto;
 import com.kntransport.backend.dto.RateTripRequest;
 import com.kntransport.backend.dto.TripBookingDto;
 import com.kntransport.backend.service.DriverLocationService;
 import com.kntransport.backend.service.TripService;
+
+import java.util.List;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -63,6 +66,14 @@ public class TripController {
             @PathVariable String id,
             @Valid @RequestBody RateTripRequest request) {
         return tripService.rateTrip(principal.getUsername(), id, request);
+    }
+
+    /** Returns all active (non-cancelled) driver quotes for a trip the commuter owns. */
+    @GetMapping("/{id}/quotes")
+    public List<QuoteDto> getTripQuotes(
+            @AuthenticationPrincipal UserDetails principal,
+            @PathVariable String id) {
+        return tripService.getTripQuotes(principal.getUsername(), id);
     }
 
     /** Returns the driver's last known position for an in-progress trip. */

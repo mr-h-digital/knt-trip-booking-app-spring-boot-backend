@@ -3,29 +3,38 @@ package com.kntransport.backend.service;
 import com.kntransport.backend.dto.CancelTripRequest;
 import com.kntransport.backend.dto.CreateTripRequest;
 import com.kntransport.backend.dto.PagedResponse;
+import com.kntransport.backend.dto.QuoteDto;
 import com.kntransport.backend.dto.RateTripRequest;
 import com.kntransport.backend.dto.TripBookingDto;
+import com.kntransport.backend.entity.Quote;
 import com.kntransport.backend.entity.TripBooking;
 import com.kntransport.backend.entity.User;
 import com.kntransport.backend.exception.BadRequestException;
 import com.kntransport.backend.exception.ResourceNotFoundException;
+import com.kntransport.backend.repository.QuoteRepository;
 import com.kntransport.backend.repository.TripBookingRepository;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 public class TripService {
 
     private final TripBookingRepository tripRepository;
-    private final UserService userService;
+    private final QuoteRepository       quoteRepository;
+    private final UserService           userService;
 
-    public TripService(TripBookingRepository tripRepository, UserService userService) {
-        this.tripRepository = tripRepository;
-        this.userService = userService;
+    public TripService(TripBookingRepository tripRepository,
+                       QuoteRepository quoteRepository,
+                       UserService userService) {
+        this.tripRepository  = tripRepository;
+        this.quoteRepository = quoteRepository;
+        this.userService     = userService;
     }
 
     public PagedResponse<TripBookingDto> getMyTrips(String email, int page, int size) {
@@ -83,6 +92,19 @@ public class TripService {
         trip.setRating(req.rating());
         trip.setRatingComment(req.comment());
         return TripBookingDto.from(tripRepository.save(trip));
+    }
+
+    /** Returns all active (non-cancelled) driver quotes for a commuter-owned trip. */
+    public List<QuoteDto> getTripQuotes(String email, String tripId) {
+        TripBooking trip = findTrip(tripId);
+        if (!trip.getCommuter().getEmail().equals(email)) {
+            throw new ResourceNotFoundException("Trip not found");
+        }
+        return quoteRepository
+                .findAllByReferenceIdAndReferenceTypeAndCancelledFalse(trip.getId(), Quote.ReferenceType.TRIP)
+                .stream()
+                .map(QuoteDto::from)
+                .collect(Collectors.toList());
     }
 
     private TripBooking findTrip(String id) {

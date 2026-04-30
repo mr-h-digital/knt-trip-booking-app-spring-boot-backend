@@ -12,7 +12,6 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -117,33 +116,68 @@ public class DriverService {
         return new DriverEarningsDto(totalEarnings, completedTrips, confirmedTrips, inProgressTrips, avgEarnings);
     }
 
-    // ── Available trips (Option C marketplace) ────────────────────────────────
+    // ── Available trips (marketplace) ─────────────────────────────────────────
 
-    /** All PENDING_QUOTE trips visible to any authenticated driver. */
+    /** All PENDING_QUOTE and QUOTE_SENT trips visible to any authenticated driver. */
     public PagedResponse<TripBookingDto> browseOpenTrips(int page, int size) {
         return PagedResponse.from(
-                tripRepository.findByStatusOrderByDateAscTimeAsc(
-                        TripBooking.TripStatus.PENDING_QUOTE, PageRequest.of(page, size)),
+                tripRepository.findOpenTrips(PageRequest.of(page, size)),
                 TripBookingDto::from);
     }
 
-    /** Driver submits a quote for a PENDING_QUOTE trip. */
+    /**
+     * Single available trip by ID — accessible while status is PENDING_QUOTE or QUOTE_SENT.
+     * Includes the calling driver's own quote in myQuote if they have one.
+     */
+    public TripBookingDto getOpenTrip(String email, String tripId) {
+        User driver = getDriver(email);
+        TripBooking trip = tripRepository.findOpenTripById(UUID.fromString(tripId))
+                .orElseThrow(() -> new ResourceNotFoundException("Trip not available: " + tripId));
+
+        Quote myQuote = quoteRepository
+                .findByReferenceIdAndReferenceTypeAndCreatedByDriverIdAndCancelledFalse(
+                        trip.getId(), Quote.ReferenceType.TRIP, driver.getId())
+                .orElse(null);
+
+        return TripBookingDto.fromWithMyQuote(trip, myQuote);
+    }
+
+    /**
+     * Returns the calling driver's active (non-cancelled) quote for a trip they are
+     * assigned to, used when reopening the DriverTripDetailScreen after a quote.
+     */
+    public QuoteDto getMyQuoteForTrip(String email, String tripId) {
+        User driver = getDriver(email);
+        TripBooking trip = findTrip(tripId);
+
+        return quoteRepository
+                .findByReferenceIdAndReferenceTypeAndCreatedByDriverIdAndCancelledFalse(
+                        trip.getId(), Quote.ReferenceType.TRIP, driver.getId())
+                .map(QuoteDto::from)
+                .orElseThrow(() -> new ResourceNotFoundException("No active quote found for this trip"));
+    }
+
+    /**
+     * Driver submits a quote for a trip.
+     * Multiple drivers may quote the same trip. The trip moves to QUOTE_SENT
+     * the first time a quote is added; subsequent quotes don't change the status.
+     * The driver is NOT assigned at this point — assignment happens on acceptance.
+     */
     @Transactional
     public QuoteDto createQuote(String email, String tripId, DriverQuoteRequest req) {
         User driver = getDriver(email);
         TripBooking trip = findTrip(tripId);
 
-        if (trip.getStatus() != TripBooking.TripStatus.PENDING_QUOTE) {
-            throw new BadRequestException("Trip is not available for quoting (status: " + trip.getStatus() + ")");
+        if (trip.getStatus() != TripBooking.TripStatus.PENDING_QUOTE
+                && trip.getStatus() != TripBooking.TripStatus.QUOTE_SENT) {
+            throw new BadRequestException("Trip is not open for quoting (status: " + trip.getStatus() + ")");
         }
 
         // One active quote per driver per trip
-        quoteRepository.findByReferenceIdAndReferenceTypeAndCreatedByDriverId(
-                trip.getId(), Quote.ReferenceType.TRIP, driver.getId())
+        quoteRepository.findByReferenceIdAndReferenceTypeAndCreatedByDriverIdAndCancelledFalse(
+                        trip.getId(), Quote.ReferenceType.TRIP, driver.getId())
                 .ifPresent(existing -> {
-                    if (!existing.isCancelled()) {
-                        throw new BadRequestException("You have already submitted a quote for this trip");
-                    }
+                    throw new BadRequestException("You have already submitted a quote for this trip");
                 });
 
         Quote quote = new Quote();
@@ -152,21 +186,13 @@ public class DriverService {
         quote.setAmount(req.amount());
         quote.setDriverNote(req.driverNote() != null ? req.driverNote() : "");
         quote.setCreatedByDriver(driver);
-        quote.setAccepted(null); // pending commuter response
+        quote.setAccepted(null);
 
-        // Snapshot driver onto the trip and move to QUOTE_SENT
-        trip.setDriver(driver);
-        trip.setDriverName(driver.getName());
-        if (driver.getCurrentVehicle() != null) {
-            trip.setVehicle(driver.getCurrentVehicle());
-            trip.setVehicleInfo(driver.getCurrentVehicle().getMake() + " "
-                    + driver.getCurrentVehicle().getModel() + " — "
-                    + driver.getCurrentVehicle().getColour());
-            trip.setVehiclePlate(driver.getCurrentVehicle().getPlate());
+        // Move to QUOTE_SENT on the first quote (no driver assigned yet)
+        if (trip.getStatus() == TripBooking.TripStatus.PENDING_QUOTE) {
+            trip.setStatus(TripBooking.TripStatus.QUOTE_SENT);
+            tripRepository.save(trip);
         }
-        trip.setStatus(TripBooking.TripStatus.QUOTE_SENT);
-        trip.setQuotedAmount(req.amount());
-        tripRepository.save(trip);
 
         return QuoteDto.from(quoteRepository.save(quote));
     }
@@ -191,12 +217,6 @@ public class DriverService {
         quote.setAmount(req.amount());
         if (req.driverNote() != null) quote.setDriverNote(req.driverNote());
 
-        // Keep the trip's quoted amount in sync
-        tripRepository.findById(quote.getReferenceId()).ifPresent(trip -> {
-            trip.setQuotedAmount(req.amount());
-            tripRepository.save(trip);
-        });
-
         return QuoteDto.from(quoteRepository.save(quote));
     }
 
@@ -215,22 +235,21 @@ public class DriverService {
         }
 
         quote.setCancelled(true);
+        quoteRepository.save(quote);
 
-        // Return trip to PENDING_QUOTE so other drivers can quote it
+        // If no active quotes remain, revert trip to PENDING_QUOTE
         tripRepository.findById(quote.getReferenceId()).ifPresent(trip -> {
             if (trip.getStatus() == TripBooking.TripStatus.QUOTE_SENT) {
-                trip.setStatus(TripBooking.TripStatus.PENDING_QUOTE);
-                trip.setDriver(null);
-                trip.setDriverName(null);
-                trip.setVehicle(null);
-                trip.setVehicleInfo(null);
-                trip.setVehiclePlate(null);
-                trip.setQuotedAmount(null);
-                tripRepository.save(trip);
+                long remaining = quoteRepository
+                        .findAllByReferenceIdAndReferenceTypeAndCancelledFalse(
+                                trip.getId(), Quote.ReferenceType.TRIP)
+                        .size();
+                if (remaining == 0) {
+                    trip.setStatus(TripBooking.TripStatus.PENDING_QUOTE);
+                    tripRepository.save(trip);
+                }
             }
         });
-
-        quoteRepository.save(quote);
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
