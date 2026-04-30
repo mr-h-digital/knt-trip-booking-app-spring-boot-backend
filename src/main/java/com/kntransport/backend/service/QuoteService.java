@@ -10,6 +10,7 @@ import com.kntransport.backend.exception.ResourceNotFoundException;
 import com.kntransport.backend.repository.LiftClubRepository;
 import com.kntransport.backend.repository.QuoteRepository;
 import com.kntransport.backend.repository.TripBookingRepository;
+import com.kntransport.backend.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,13 +22,16 @@ public class QuoteService {
     private final QuoteRepository        quoteRepository;
     private final TripBookingRepository  tripRepository;
     private final LiftClubRepository     liftClubRepository;
+    private final UserRepository         userRepository;
 
     public QuoteService(QuoteRepository quoteRepository,
                         TripBookingRepository tripRepository,
-                        LiftClubRepository liftClubRepository) {
+                        LiftClubRepository liftClubRepository,
+                        UserRepository userRepository) {
         this.quoteRepository    = quoteRepository;
         this.tripRepository     = tripRepository;
         this.liftClubRepository = liftClubRepository;
+        this.userRepository     = userRepository;
     }
 
     public QuoteDto getQuote(String id) {
@@ -36,7 +40,10 @@ public class QuoteService {
 
     @Transactional
     public QuoteDto respondToQuote(String id, QuoteAcceptRequest req) {
-        Quote quote = findQuote(id);
+        // Use the fetch-join query so createdByDriver is never a lazy proxy
+        Quote quote = quoteRepository.findByIdWithDriver(UUID.fromString(id))
+                .orElseThrow(() -> new ResourceNotFoundException("Quote not found: " + id));
+
         quote.setAccepted(req.accepted());
 
         if (req.paymentCycle() != null && !req.paymentCycle().isBlank()) {
@@ -48,9 +55,11 @@ public class QuoteService {
         if (quote.getReferenceType() == Quote.ReferenceType.TRIP) {
             tripRepository.findById(quote.getReferenceId()).ifPresent(trip -> {
                 if (req.accepted()) {
-                    User driver = quote.getCreatedByDriver();
+                    // Re-fetch the driver fully (including currentVehicle) to avoid lazy-load issues
+                    User driver = quote.getCreatedByDriver() != null
+                            ? userRepository.findById(quote.getCreatedByDriver().getId()).orElse(null)
+                            : null;
 
-                    // Assign the driver whose quote was accepted
                     trip.setDriver(driver);
                     if (driver != null) {
                         trip.setDriverName(driver.getName());
@@ -77,7 +86,7 @@ public class QuoteService {
                                 }
                             });
                 } else {
-                    // Declined — revert to QUOTE_SENT if other active quotes remain, else PENDING_QUOTE
+                    // Declined — keep QUOTE_SENT if other active quotes remain, else PENDING_QUOTE
                     long remaining = quoteRepository
                             .findAllByReferenceIdAndReferenceTypeAndCancelledFalse(
                                     trip.getId(), Quote.ReferenceType.TRIP)

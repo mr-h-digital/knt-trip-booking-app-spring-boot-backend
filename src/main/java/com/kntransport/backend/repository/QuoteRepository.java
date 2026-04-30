@@ -9,6 +9,10 @@ import java.util.Optional;
 import java.util.UUID;
 
 public interface QuoteRepository extends JpaRepository<Quote, UUID> {
+
+    /** Fetches the quote and eagerly joins its driver, avoiding lazy-load issues in transactions. */
+    @Query("SELECT q FROM Quote q LEFT JOIN FETCH q.createdByDriver WHERE q.id = :id")
+    Optional<Quote> findByIdWithDriver(@Param("id") UUID id);
     Optional<Quote> findByReferenceIdAndReferenceType(UUID referenceId, Quote.ReferenceType referenceType);
 
     List<Quote> findAllByReferenceIdAndReferenceType(UUID referenceId, Quote.ReferenceType referenceType);
