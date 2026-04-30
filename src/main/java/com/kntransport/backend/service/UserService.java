@@ -5,30 +5,20 @@ import com.kntransport.backend.dto.UserDto;
 import com.kntransport.backend.entity.User;
 import com.kntransport.backend.exception.BadRequestException;
 import com.kntransport.backend.repository.UserRepository;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.UUID;
-
-// TODO: Replace local filesystem storage with S3/Cloudflare R2 before
-// enabling avatar uploads in production. Railway containers are ephemeral —
-// files written to disk are lost on every redeploy.
 
 @Service
 public class UserService {
 
     private final UserRepository userRepository;
+    private final StorageService storageService;
 
-    @Value("${app.upload.dir:uploads}")
-    private String uploadDir;
-
-    public UserService(UserRepository userRepository) {
+    public UserService(UserRepository userRepository, StorageService storageService) {
         this.userRepository = userRepository;
+        this.storageService = storageService;
     }
 
     public User getByEmail(String email) {
@@ -54,25 +44,9 @@ public class UserService {
     }
 
     public UserDto uploadAvatar(String email, MultipartFile file) throws IOException {
-        if (file.isEmpty()) {
-            throw new BadRequestException("Avatar file is empty");
-        }
-
-        Path dir = Paths.get(uploadDir, "avatars").toAbsolutePath();
-        Files.createDirectories(dir);
-
-        String ext = getExtension(file.getOriginalFilename());
-        String filename = UUID.randomUUID() + ext;
-        file.transferTo(dir.resolve(filename));
-
+        String url = storageService.store("avatars", file);
         User user = getByEmail(email);
-        user.setAvatarUrl("/uploads/avatars/" + filename);
+        user.setAvatarUrl(url);
         return UserDto.from(userRepository.save(user));
-    }
-
-    private String getExtension(String filename) {
-        if (filename == null) return ".jpg";
-        int dot = filename.lastIndexOf('.');
-        return dot >= 0 ? filename.substring(dot) : ".jpg";
     }
 }

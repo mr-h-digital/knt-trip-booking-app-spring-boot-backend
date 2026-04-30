@@ -5,7 +5,7 @@ import com.kntransport.backend.entity.*;
 import com.kntransport.backend.exception.BadRequestException;
 import com.kntransport.backend.exception.ResourceNotFoundException;
 import com.kntransport.backend.repository.*;
-import org.springframework.beans.factory.annotation.Value;
+import com.kntransport.backend.service.StorageService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -14,18 +14,12 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
 public class AdminService {
-
-    @Value("${app.upload.dir:uploads}")
-    private String uploadDir;
 
     private final UserRepository               userRepository;
     private final TripBookingRepository        tripRepository;
@@ -34,6 +28,7 @@ public class AdminService {
     private final LiftClubSubscriptionRepository subscriptionRepository;
     private final VehicleRepository            vehicleRepository;
     private final PasswordEncoder              passwordEncoder;
+    private final StorageService               storageService;
 
     public AdminService(UserRepository userRepository,
                         TripBookingRepository tripRepository,
@@ -41,7 +36,8 @@ public class AdminService {
                         QuoteRepository quoteRepository,
                         LiftClubSubscriptionRepository subscriptionRepository,
                         VehicleRepository vehicleRepository,
-                        PasswordEncoder passwordEncoder) {
+                        PasswordEncoder passwordEncoder,
+                        StorageService storageService) {
         this.userRepository        = userRepository;
         this.tripRepository        = tripRepository;
         this.liftClubRepository    = liftClubRepository;
@@ -49,6 +45,7 @@ public class AdminService {
         this.subscriptionRepository = subscriptionRepository;
         this.vehicleRepository     = vehicleRepository;
         this.passwordEncoder       = passwordEncoder;
+        this.storageService        = storageService;
     }
 
     // ── User management ───────────────────────────────────────────────────────
@@ -311,22 +308,9 @@ public class AdminService {
     }
 
     public VehicleDto uploadVehiclePhoto(String id, MultipartFile file) throws IOException {
-        if (file.isEmpty()) {
-            throw new BadRequestException("Photo file is empty");
-        }
-        if (System.getenv("RAILWAY_ENVIRONMENT") != null) {
-            throw new BadRequestException(
-                "Vehicle photo upload is not yet supported on this server. " +
-                "Please provide a photoUrl via the update vehicle endpoint instead.");
-        }
-        Path dir = Paths.get(uploadDir, "vehicles").toAbsolutePath();
-        Files.createDirectories(dir);
-        String ext      = getFileExtension(file.getOriginalFilename());
-        String filename = UUID.randomUUID() + ext;
-        file.transferTo(dir.resolve(filename));
-
+        String url = storageService.store("vehicles", file);
         Vehicle v = findVehicle(id);
-        v.setPhotoUrl("/uploads/vehicles/" + filename);
+        v.setPhotoUrl(url);
         return VehicleDto.from(vehicleRepository.save(v), null, null);
     }
 
@@ -384,11 +368,6 @@ public class AdminService {
                 .orElseThrow(() -> new ResourceNotFoundException("Vehicle not found: " + id));
     }
 
-    private String getFileExtension(String filename) {
-        if (filename == null) return ".jpg";
-        int dot = filename.lastIndexOf('.');
-        return dot >= 0 ? filename.substring(dot) : ".jpg";
-    }
 
     // ── Trip management ───────────────────────────────────────────────────────
 
