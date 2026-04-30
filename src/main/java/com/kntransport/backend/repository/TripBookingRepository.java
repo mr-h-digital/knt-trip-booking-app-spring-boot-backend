@@ -18,6 +18,8 @@ public interface TripBookingRepository extends JpaRepository<TripBooking, UUID> 
 
     java.util.Optional<TripBooking> findByIdAndStatusIn(UUID id, java.util.Collection<TripBooking.TripStatus> statuses);
 
+    List<TripBooking> findByStatusInAndDateBefore(java.util.Collection<TripBooking.TripStatus> statuses, java.time.LocalDate date);
+
     long countByStatus(TripBooking.TripStatus status);
 
     // ── Driver queries ────────────────────────────────────────────────────────

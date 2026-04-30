@@ -10,7 +10,7 @@ public class AuthRequest {
         @NotBlank @Email
         public String email;
 
-        @NotBlank @Size(min = 6)
+        @NotBlank @Size(min = 8)
         public String password;
     }
 
@@ -24,7 +24,7 @@ public class AuthRequest {
         @NotBlank
         public String phone;
 
-        @NotBlank @Size(min = 6)
+        @NotBlank @Size(min = 8)
         public String password;
     }
 }

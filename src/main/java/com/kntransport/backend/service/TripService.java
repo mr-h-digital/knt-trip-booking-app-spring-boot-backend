@@ -55,12 +55,27 @@ public class TripService {
     public TripBookingDto createTrip(String email, CreateTripRequest req) {
         User user = userService.getByEmail(email);
 
+        LocalDate tripDate = LocalDate.parse(req.date());
+        LocalTime tripTime = LocalTime.parse(req.time());
+
+        // Reject past dates outright
+        if (tripDate.isBefore(LocalDate.now())) {
+            throw new BadRequestException("Trip date cannot be in the past");
+        }
+        // Require at least 2 hours notice for same-day bookings
+        if (tripDate.isEqual(LocalDate.now())) {
+            java.time.LocalDateTime tripDateTime = java.time.LocalDateTime.of(tripDate, tripTime);
+            if (tripDateTime.isBefore(java.time.LocalDateTime.now().plusHours(2))) {
+                throw new BadRequestException("Same-day trips must be booked at least 2 hours in advance");
+            }
+        }
+
         TripBooking trip = new TripBooking();
         trip.setCommuter(user);
         trip.setPickupAddress(req.pickupAddress());
         trip.setDropAddress(req.dropAddress());
-        trip.setDate(LocalDate.parse(req.date()));
-        trip.setTime(LocalTime.parse(req.time()));
+        trip.setDate(tripDate);
+        trip.setTime(tripTime);
         trip.setPassengers(req.passengers());
         trip.setNotes(req.notes() != null ? req.notes() : "");
         trip.setStatus(TripBooking.TripStatus.PENDING_QUOTE);
