@@ -1,6 +1,7 @@
 package com.kntransport.backend.service;
 
 import com.kntransport.backend.exception.BadRequestException;
+import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -35,6 +36,20 @@ import java.util.UUID;
 public class StorageService {
 
     private static final Logger log = LoggerFactory.getLogger(StorageService.class);
+
+    @PostConstruct
+    void logConfig() {
+        if (isR2Configured()) {
+            log.info("StorageService: R2 configured — account={} bucket={} publicUrl={}",
+                    accountId, bucket, publicUrl);
+        } else {
+            log.warn("StorageService: R2 NOT configured (missing env vars) — falling back to local disk. " +
+                    "accountId={} accessKeyId={} secretKey={} bucket={} publicUrl={}",
+                    blank(accountId), blank(accessKeyId), blank(secretKey), blank(bucket), blank(publicUrl));
+        }
+    }
+
+    private String blank(String s) { return (s == null || s.isBlank()) ? "MISSING" : "SET"; }
 
     @Value("${r2.account-id:}")        private String accountId;
     @Value("${r2.access-key-id:}")     private String accessKeyId;

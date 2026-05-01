@@ -55,6 +55,13 @@ public class GlobalExceptionHandler {
                 .body(new ApiError("Invalid identifier format", 400));
     }
 
+    @ExceptionHandler(java.io.IOException.class)
+    public ResponseEntity<ApiError> handleIOException(java.io.IOException ex) {
+        // Surface storage/upload errors to the client so they're visible in logs and app UI
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(new ApiError("Upload failed: " + ex.getMessage(), 500));
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiError> handleGeneric(Exception ex) {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
