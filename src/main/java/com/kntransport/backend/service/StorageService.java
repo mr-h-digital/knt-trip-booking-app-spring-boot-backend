@@ -133,7 +133,12 @@ public class StorageService {
 
         // Copy bytes to memory up front — MultipartFile stream can only be read once
         byte[] bytes = file.getBytes();
-        String contentType = file.getContentType() != null ? file.getContentType() : "application/octet-stream";
+        // Normalise wildcard or missing content type — R2 must serve a specific MIME type
+        // so Coil and browsers can decode the image without guessing
+        String raw = file.getContentType();
+        String contentType = (raw == null || raw.isBlank() || raw.equals("image/*"))
+                ? "image/jpeg"
+                : raw;
 
         try (S3Client s3 = S3Client.builder()
                 .endpointOverride(URI.create(endpoint))

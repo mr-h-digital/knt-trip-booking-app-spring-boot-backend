@@ -49,8 +49,10 @@ public class UserService {
         if (user.getAvatarUrl() != null && !user.getAvatarUrl().contains(user.getId().toString())) {
             storageService.deleteByUrl(user.getAvatarUrl());
         }
-        // Use the user's ID as the filename — overwrites the previous avatar on every upload
-        String url = storageService.store("avatars", file, user.getId().toString());
+        // Use the user's ID as the filename — overwrites in R2 on every upload.
+        // Append a timestamp so Coil treats each upload as a distinct URL and bypasses its cache.
+        String url = storageService.store("avatars", file, user.getId().toString())
+                + "?v=" + System.currentTimeMillis();
         user.setAvatarUrl(url);
         return UserDto.from(userRepository.save(user));
     }
