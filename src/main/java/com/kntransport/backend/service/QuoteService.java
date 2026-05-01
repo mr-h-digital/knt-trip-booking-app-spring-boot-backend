@@ -75,6 +75,13 @@ public class QuoteService {
                     trip.setQuotedAmount(quote.getAmount());
                     trip.setStatus(TripBooking.TripStatus.QUOTE_ACCEPTED);
 
+                    // Record how the commuter intends to pay
+                    if (req.paymentMethod() != null && !req.paymentMethod().isBlank()) {
+                        try {
+                            trip.setPaymentMethod(TripBooking.PaymentMethod.valueOf(req.paymentMethod().toUpperCase()));
+                        } catch (IllegalArgumentException ignored) {}
+                    }
+
                     // Cancel all other pending quotes for this trip
                     quoteRepository
                             .findAllByReferenceIdAndReferenceTypeAndCancelledFalse(

@@ -61,6 +61,10 @@ public class TripBooking {
     @Column(name = "vehicle_plate")
     private String vehiclePlate;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "payment_method")
+    private PaymentMethod paymentMethod;
+
     @Column(name = "rating")
     private Integer rating;
 
@@ -70,6 +74,8 @@ public class TripBooking {
     public enum TripStatus {
         PENDING_QUOTE, QUOTE_SENT, QUOTE_ACCEPTED, CONFIRMED, IN_PROGRESS, COMPLETED, CANCELLED
     }
+
+    public enum PaymentMethod { CASH, CARD }
 
     // ── Getters / Setters ─────────────────────────────────────────────────────
 
@@ -117,6 +123,9 @@ public class TripBooking {
 
     public String getVehiclePlate() { return vehiclePlate; }
     public void setVehiclePlate(String vehiclePlate) { this.vehiclePlate = vehiclePlate; }
+
+    public PaymentMethod getPaymentMethod() { return paymentMethod; }
+    public void setPaymentMethod(PaymentMethod paymentMethod) { this.paymentMethod = paymentMethod; }
 
     public Integer getRating() { return rating; }
     public void setRating(Integer rating) { this.rating = rating; }

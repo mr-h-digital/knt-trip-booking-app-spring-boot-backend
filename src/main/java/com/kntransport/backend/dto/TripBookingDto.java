@@ -29,6 +29,8 @@ public record TripBookingDto(
         // ── Legacy string fields (kept for backwards compat) ──────────────────
         String vehicleInfo,
         Integer rating,
+        // ── Payment ───────────────────────────────────────────────────────────
+        String paymentMethod,
         // ── Driver's own quote for this trip (null unless explicitly loaded) ──
         QuoteDto myQuote
 ) {
@@ -62,6 +64,7 @@ public record TripBookingDto(
                 t.getDriver() != null ? t.getDriver().getAvatarUrl() : null,
                 t.getVehicleInfo(),
                 t.getRating(),
+                t.getPaymentMethod() != null ? t.getPaymentMethod().name() : null,
                 myQuote != null ? QuoteDto.from(myQuote) : null
         );
     }
