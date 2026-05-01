@@ -134,12 +134,34 @@ public class AdminController {
         return adminService.listAllTrips(page, size);
     }
 
+    /** Single trip detail. */
+    @GetMapping("/trips/{tripId}")
+    public TripBookingDto getTrip(@PathVariable String tripId) {
+        return adminService.getTrip(tripId);
+    }
+
     /** Assign a driver to a trip. Body: { "driverId": "uuid" } */
     @PatchMapping("/trips/{tripId}/assign-driver")
     public TripBookingDto assignDriver(
             @PathVariable String tripId,
             @Valid @RequestBody AssignDriverRequest request) {
         return adminService.assignDriver(tripId, request);
+    }
+
+    /** Admin cancels any trip. Body: { "reason": "...", "note": "..." } */
+    @PatchMapping("/trips/{tripId}/cancel")
+    public TripBookingDto cancelTrip(
+            @PathVariable String tripId,
+            @Valid @RequestBody CancelTripRequest request) {
+        return adminService.cancelTrip(tripId, request);
+    }
+
+    /** Admin updates quoted amount. Body: { "amount": 250.00 } */
+    @PatchMapping("/trips/{tripId}/quote")
+    public TripBookingDto updateQuote(
+            @PathVariable String tripId,
+            @RequestBody java.util.Map<String, Double> body) {
+        return adminService.updateQuote(tripId, body.getOrDefault("amount", 0.0));
     }
 
     // ── Analytics dashboard ───────────────────────────────────────────────────

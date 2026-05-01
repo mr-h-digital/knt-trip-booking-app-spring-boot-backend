@@ -1,6 +1,8 @@
 package com.kntransport.backend.service;
 
 import com.kntransport.backend.exception.BadRequestException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -31,6 +33,8 @@ import java.util.UUID;
  */
 @Service
 public class StorageService {
+
+    private static final Logger log = LoggerFactory.getLogger(StorageService.class);
 
     @Value("${r2.account-id:}")        private String accountId;
     @Value("${r2.access-key-id:}")     private String accessKeyId;
@@ -70,30 +74,39 @@ public class StorageService {
 
     private String uploadToR2(String key, MultipartFile file) throws IOException {
         String endpoint = "https://" + accountId + ".r2.cloudflarestorage.com";
+        log.info("Uploading to R2: bucket={} key={} size={}", bucket, key, file.getSize());
 
-        S3Client s3 = S3Client.builder()
+        // Copy bytes to memory up front — MultipartFile stream can only be read once
+        byte[] bytes = file.getBytes();
+        String contentType = file.getContentType() != null ? file.getContentType() : "application/octet-stream";
+
+        try (S3Client s3 = S3Client.builder()
                 .endpointOverride(URI.create(endpoint))
                 .region(Region.of("auto"))
                 .credentialsProvider(StaticCredentialsProvider.create(
                         AwsBasicCredentials.create(accessKeyId, secretKey)))
-                // R2 requires path-style URLs — virtual-hosted style DNS does not resolve
                 .serviceConfiguration(software.amazon.awssdk.services.s3.S3Configuration.builder()
                         .pathStyleAccessEnabled(true)
                         .build())
-                .build();
+                .build()) {
 
-        PutObjectRequest put = PutObjectRequest.builder()
-                .bucket(bucket)
-                .key(key)
-                .contentType(file.getContentType())
-                .contentLength(file.getSize())
-                .build();
+            PutObjectRequest put = PutObjectRequest.builder()
+                    .bucket(bucket)
+                    .key(key)
+                    .contentType(contentType)
+                    .contentLength((long) bytes.length)
+                    .build();
 
-        s3.putObject(put, RequestBody.fromBytes(file.getBytes()));
-        s3.close();
+            s3.putObject(put, RequestBody.fromBytes(bytes));
+        } catch (Exception e) {
+            log.error("R2 upload failed for key={}: {}", key, e.getMessage(), e);
+            throw new IOException("Failed to upload file to storage: " + e.getMessage(), e);
+        }
 
         String base = publicUrl.endsWith("/") ? publicUrl.substring(0, publicUrl.length() - 1) : publicUrl;
-        return base + "/" + key;
+        String url = base + "/" + key;
+        log.info("R2 upload successful: {}", url);
+        return url;
     }
 
     private String saveLocally(String folder, String filename, MultipartFile file) throws IOException {

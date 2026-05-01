@@ -408,6 +408,36 @@ public class AdminService {
         return TripBookingDto.from(tripRepository.save(trip));
     }
 
+    /** Admin cancels any trip regardless of status. */
+    @Transactional
+    public TripBookingDto cancelTrip(String tripId, CancelTripRequest req) {
+        TripBooking trip = tripRepository.findById(UUID.fromString(tripId))
+                .orElseThrow(() -> new ResourceNotFoundException("Trip not found: " + tripId));
+        if (trip.getStatus() == TripBooking.TripStatus.COMPLETED ||
+            trip.getStatus() == TripBooking.TripStatus.CANCELLED) {
+            throw new BadRequestException("Trip is already " + trip.getStatus().name().toLowerCase());
+        }
+        trip.setStatus(TripBooking.TripStatus.CANCELLED);
+        return TripBookingDto.from(tripRepository.save(trip));
+    }
+
+    /** Admin updates a trip's quoted amount. */
+    @Transactional
+    public TripBookingDto updateQuote(String tripId, double amount) {
+        TripBooking trip = tripRepository.findById(UUID.fromString(tripId))
+                .orElseThrow(() -> new ResourceNotFoundException("Trip not found: " + tripId));
+        trip.setQuotedAmount(amount);
+        return TripBookingDto.from(tripRepository.save(trip));
+    }
+
+    /** Admin fetches a single trip by ID. */
+    public TripBookingDto getTrip(String tripId) {
+        return TripBookingDto.from(
+                tripRepository.findById(UUID.fromString(tripId))
+                        .orElseThrow(() -> new ResourceNotFoundException("Trip not found: " + tripId))
+        );
+    }
+
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     private User findUser(String id) {

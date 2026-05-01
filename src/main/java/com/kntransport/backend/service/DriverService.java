@@ -99,6 +99,7 @@ public class DriverService {
             trip.getStatus() == TripBooking.TripStatus.CANCELLED) {
             throw new BadRequestException("Trip cannot be cancelled in status: " + trip.getStatus());
         }
+        // Allow cancellation at any non-terminal status including IN_PROGRESS
         trip.setStatus(TripBooking.TripStatus.CANCELLED);
         return TripBookingDto.from(tripRepository.save(trip));
     }
