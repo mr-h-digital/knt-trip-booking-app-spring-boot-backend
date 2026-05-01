@@ -1,6 +1,7 @@
 package com.kntransport.backend.admin;
 
 import com.kntransport.backend.dto.*;
+import com.kntransport.backend.service.StorageService;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
@@ -10,15 +11,24 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/admin")
 public class AdminController {
 
-    private final AdminService adminService;
+    private final AdminService    adminService;
+    private final StorageService  storageService;
 
-    public AdminController(AdminService adminService) {
-        this.adminService = adminService;
+    public AdminController(AdminService adminService, StorageService storageService) {
+        this.adminService   = adminService;
+        this.storageService = storageService;
+    }
+
+    /** Diagnostic: tests R2 connectivity and returns status + error if any. */
+    @GetMapping("/storage/test")
+    public Map<String, String> testStorage() {
+        return storageService.testR2();
     }
 
     // ── User management ───────────────────────────────────────────────────────

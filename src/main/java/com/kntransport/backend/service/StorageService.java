@@ -131,6 +131,58 @@ public class StorageService {
         return "/uploads/" + folder + "/" + filename;
     }
 
+    /**
+     * Diagnostic: attempts to write a tiny test object to R2 and returns a
+     * human-readable result. Safe to call repeatedly — the test key is fixed
+     * so it just overwrites itself.
+     */
+    public java.util.Map<String, String> testR2() {
+        var result = new java.util.LinkedHashMap<String, String>();
+        result.put("r2Configured", String.valueOf(isR2Configured()));
+        result.put("accountId",    blank(accountId));
+        result.put("accessKeyId",  blank(accessKeyId));
+        result.put("secretKey",    blank(secretKey));
+        result.put("bucket",       blank(bucket));
+        result.put("publicUrl",    publicUrl);
+
+        if (!isR2Configured()) {
+            result.put("status", "SKIP — env vars missing");
+            return result;
+        }
+
+        String endpoint = "https://" + accountId + ".r2.cloudflarestorage.com";
+        try (S3Client s3 = S3Client.builder()
+                .endpointOverride(URI.create(endpoint))
+                .region(Region.of("auto"))
+                .credentialsProvider(StaticCredentialsProvider.create(
+                        AwsBasicCredentials.create(accessKeyId, secretKey)))
+                .serviceConfiguration(software.amazon.awssdk.services.s3.S3Configuration.builder()
+                        .pathStyleAccessEnabled(true)
+                        .build())
+                .build()) {
+
+            byte[] data = "knt-r2-test".getBytes(java.nio.charset.StandardCharsets.UTF_8);
+            s3.putObject(
+                PutObjectRequest.builder()
+                    .bucket(bucket)
+                    .key("_test/connectivity-check.txt")
+                    .contentType("text/plain")
+                    .contentLength((long) data.length)
+                    .build(),
+                RequestBody.fromBytes(data)
+            );
+            result.put("status", "OK — test object written successfully");
+            String base = publicUrl.endsWith("/") ? publicUrl.substring(0, publicUrl.length() - 1) : publicUrl;
+            result.put("testUrl", base + "/_test/connectivity-check.txt");
+        } catch (Exception e) {
+            result.put("status", "FAILED");
+            result.put("error",  e.getMessage());
+            result.put("cause",  e.getCause() != null ? e.getCause().getMessage() : "none");
+            log.error("R2 connectivity test failed: {}", e.getMessage(), e);
+        }
+        return result;
+    }
+
     private String getExtension(String filename) {
         if (filename == null) return ".jpg";
         int dot = filename.lastIndexOf('.');
