@@ -44,8 +44,13 @@ public class UserService {
     }
 
     public UserDto uploadAvatar(String email, MultipartFile file) throws IOException {
-        String url = storageService.store("avatars", file);
         User user = getByEmail(email);
+        // Delete the old file if it was a UUID-based URL (migration cleanup)
+        if (user.getAvatarUrl() != null && !user.getAvatarUrl().contains(user.getId().toString())) {
+            storageService.deleteByUrl(user.getAvatarUrl());
+        }
+        // Use the user's ID as the filename — overwrites the previous avatar on every upload
+        String url = storageService.store("avatars", file, user.getId().toString());
         user.setAvatarUrl(url);
         return UserDto.from(userRepository.save(user));
     }

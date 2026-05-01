@@ -308,8 +308,13 @@ public class AdminService {
     }
 
     public VehicleDto uploadVehiclePhoto(String id, MultipartFile file) throws IOException {
-        String url = storageService.store("vehicles", file);
         Vehicle v = findVehicle(id);
+        // Delete old UUID-based file if present
+        if (v.getPhotoUrl() != null && !v.getPhotoUrl().contains(v.getId().toString())) {
+            storageService.deleteByUrl(v.getPhotoUrl());
+        }
+        // Use vehicle ID as fixed filename — overwrites previous photo on re-upload
+        String url = storageService.store("vehicles", file, v.getId().toString());
         v.setPhotoUrl(url);
         return VehicleDto.from(vehicleRepository.save(v), null, null);
     }

@@ -12,6 +12,7 @@ import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
 import java.io.IOException;
@@ -60,22 +61,61 @@ public class StorageService {
 
     /**
      * Stores the file and returns a permanent public URL.
-     * @param folder  sub-folder name, e.g. "avatars" or "vehicles"
-     * @param file    the uploaded multipart file
+     * @param folder    sub-folder name, e.g. "avatars" or "vehicles"
+     * @param file      the uploaded multipart file
+     * @param fixedName optional fixed filename (without extension) — if provided, the object
+     *                  is always written to the same key so it replaces the previous upload.
+     *                  Pass null to generate a random UUID filename.
      */
-    public String store(String folder, MultipartFile file) throws IOException {
+    public String store(String folder, MultipartFile file, String fixedName) throws IOException {
         if (file.isEmpty()) {
             throw new BadRequestException("Uploaded file is empty");
         }
 
         String ext      = getExtension(file.getOriginalFilename());
-        String filename = UUID.randomUUID() + ext;
+        String filename = (fixedName != null ? fixedName : UUID.randomUUID().toString()) + ext;
         String key      = folder + "/" + filename;
 
         if (isR2Configured()) {
             return uploadToR2(key, file);
         } else {
             return saveLocally(folder, filename, file);
+        }
+    }
+
+    /** Convenience overload — generates a random UUID filename. */
+    public String store(String folder, MultipartFile file) throws IOException {
+        return store(folder, file, null);
+    }
+
+    /**
+     * Deletes an object from R2 by its full public URL.
+     * Safe to call even if the URL is null, blank, local, or the object doesn't exist.
+     */
+    public void deleteByUrl(String publicFileUrl) {
+        if (publicFileUrl == null || publicFileUrl.isBlank()) return;
+        if (!publicFileUrl.startsWith("http")) return; // local file — skip
+        if (!isR2Configured()) return;
+
+        // Extract the key from the URL: everything after the public URL base
+        String base = (publicUrl.endsWith("/") ? publicUrl.substring(0, publicUrl.length() - 1) : publicUrl);
+        if (!publicFileUrl.startsWith(base + "/")) return;
+        String key = publicFileUrl.substring(base.length() + 1);
+
+        String endpoint = "https://" + accountId + ".r2.cloudflarestorage.com";
+        try (S3Client s3 = S3Client.builder()
+                .endpointOverride(URI.create(endpoint))
+                .region(Region.of("auto"))
+                .credentialsProvider(StaticCredentialsProvider.create(
+                        AwsBasicCredentials.create(accessKeyId, secretKey)))
+                .serviceConfiguration(software.amazon.awssdk.services.s3.S3Configuration.builder()
+                        .pathStyleAccessEnabled(true)
+                        .build())
+                .build()) {
+            s3.deleteObject(DeleteObjectRequest.builder().bucket(bucket).key(key).build());
+            log.info("Deleted R2 object: {}", key);
+        } catch (Exception e) {
+            log.warn("Could not delete R2 object {}: {}", key, e.getMessage());
         }
     }
 
