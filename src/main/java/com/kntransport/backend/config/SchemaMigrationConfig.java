@@ -24,5 +24,13 @@ public class SchemaMigrationConfig implements ApplicationRunner {
         // Allow quotes.accepted to be NULL (pending commuter response).
         // ddl-auto=update never drops constraints, so we patch it manually.
         jdbc.execute("ALTER TABLE quotes ALTER COLUMN accepted DROP NOT NULL");
+
+        // Clear any avatar_url values that still point to the old local /uploads/ path.
+        // These were saved before Cloudflare R2 was configured; Railway's ephemeral
+        // filesystem no longer serves them, causing 500s on every profile load.
+        // Clearing them makes the app fall back to the initials avatar gracefully.
+        jdbc.execute(
+            "UPDATE users SET avatar_url = NULL WHERE avatar_url LIKE '/uploads/%'"
+        );
     }
 }
