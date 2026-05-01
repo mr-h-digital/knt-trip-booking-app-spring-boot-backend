@@ -30,6 +30,10 @@ public class User {
     @Column(name = "avatar_url")
     private String avatarUrl;
 
+    /** Timestamp when the user explicitly accepted the current Terms & Privacy Policy. Null = not yet accepted. */
+    @Column(name = "terms_accepted_at")
+    private java.time.Instant termsAcceptedAt;
+
     /** The vehicle currently assigned to this driver by the admin (nullable). */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "current_vehicle_id")
@@ -62,4 +66,7 @@ public class User {
 
     public Vehicle getCurrentVehicle() { return currentVehicle; }
     public void setCurrentVehicle(Vehicle currentVehicle) { this.currentVehicle = currentVehicle; }
+
+    public java.time.Instant getTermsAcceptedAt() { return termsAcceptedAt; }
+    public void setTermsAcceptedAt(java.time.Instant termsAcceptedAt) { this.termsAcceptedAt = termsAcceptedAt; }
 }

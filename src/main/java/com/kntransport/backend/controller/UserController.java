@@ -39,4 +39,10 @@ public class UserController {
             @RequestPart("avatar") MultipartFile file) throws IOException {
         return userService.uploadAvatar(principal.getUsername(), file);
     }
+
+    /** Records that the authenticated user has accepted the current Terms & Privacy Policy. */
+    @PatchMapping("/me/accept-terms")
+    public UserDto acceptTerms(@AuthenticationPrincipal UserDetails principal) {
+        return userService.acceptTerms(principal.getUsername());
+    }
 }

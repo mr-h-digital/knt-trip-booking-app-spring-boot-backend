@@ -49,4 +49,10 @@ public class UserService {
         user.setAvatarUrl(url);
         return UserDto.from(userRepository.save(user));
     }
+
+    public UserDto acceptTerms(String email) {
+        User user = getByEmail(email);
+        user.setTermsAcceptedAt(java.time.Instant.now());
+        return UserDto.from(userRepository.save(user));
+    }
 }

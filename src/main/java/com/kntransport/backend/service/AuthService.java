@@ -45,6 +45,8 @@ public class AuthService {
         user.setPhone(req.phone);
         user.setPassword(passwordEncoder.encode(req.password));
         user.setRole(User.Role.COMMUTER);
+        // Stamp acceptance at registration — they ticked the checkbox before submitting
+        user.setTermsAcceptedAt(java.time.Instant.now());
         userRepository.save(user);
 
         return buildAuthResponse(user);

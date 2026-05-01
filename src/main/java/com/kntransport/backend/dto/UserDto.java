@@ -16,7 +16,9 @@ public record UserDto(
         String currentVehicleColour,
         String currentVehiclePlate,
         String currentVehicleType,
-        String currentVehiclePhotoUrl
+        String currentVehiclePhotoUrl,
+        // ── Terms acceptance ──────────────────────────────────────────────────
+        String termsAcceptedAt
 ) {
     public static UserDto from(User u) {
         var v = u.getCurrentVehicle();
@@ -33,7 +35,8 @@ public record UserDto(
                 v != null ? v.getColour()             : null,
                 v != null ? v.getPlate()              : null,
                 v != null ? v.getVehicleType().name() : null,
-                v != null ? v.getPhotoUrl()           : null
+                v != null ? v.getPhotoUrl()           : null,
+                u.getTermsAcceptedAt() != null ? u.getTermsAcceptedAt().toString() : null
         );
     }
 }
